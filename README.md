@@ -29,7 +29,6 @@
 - [Project Structure](#-project-structure)
 - [Roadmap](#-roadmap)
 - [Contributing](#-contributing)
-- [Team](#-team)
 - [License](#-license)
 
 ---
