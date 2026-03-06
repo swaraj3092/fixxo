@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/flask-3.0-green.svg)](https://flask.palletsprojects.com)
-[![CI](https://github.com/YOUR_USERNAME/smart-hostel-complaint-system/actions/workflows/ci.yml/badge.svg)](../../actions)
+[![CI](https://github.com/swaraj3092/smart-hostel-complaint-system/actions/workflows/ci.yml/badge.svg)](../../actions)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 > AI-powered WhatsApp complaint management for university hostels.  
