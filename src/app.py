@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from twilio.twiml.messaging_response import MessagingResponse
 from twilio.rest import Client
 from dotenv import load_dotenv
-from ai_classifier_simple import classify_complaint
+from ai_classifier import classify_complaint
 from database import save_complaint, resolve_complaint, get_complaint_by_token
 from email_sender import send_department_email
 import os
