@@ -1,0 +1,40 @@
+# Sample complaint messages for manual testing
+# Send these via WhatsApp to the Twilio sandbox number
+# Or run: python src/ai_classifier_simple.py
+
+# ── ELECTRICAL ──
+KP-7 hostel room 312 fan not working urgent
+The light bulb is broken in Block A Room 204
+No power in room 401 since last night
+
+# ── PLUMBING ──
+Bathroom tap leaking in Block A Room 204
+Toilet flush not working in KP-7 room 101
+No water in my room since morning urgent
+
+# ── WIFI ──
+WiFi not working in Kaveri Hostel Room 305 urgent
+Internet connection very slow in KP-7 room 312
+Cannot connect to network in room 204
+
+# ── SECURITY ──
+There is a stranger in corridor at night
+Door lock is broken in room 302
+Intruder seen near Block C at midnight emergency
+
+# ── FOOD ──
+The mess food quality is very bad today
+Lunch was not cooked properly in canteen
+
+# ── CLEANLINESS ──
+Room 101 has garbage piled up for 3 days
+Corridor is very dirty and smells bad near Block B
+
+# ── FURNITURE ──
+Bed is broken in KP-7 room 312, mattress on floor
+Chair in room 204 is broken, cannot sit
+
+# ── EDGE CASES ──
+(no hostel or room number mentioned)
+WiFi is slow
+Fan is broken

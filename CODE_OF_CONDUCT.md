@@ -2,26 +2,23 @@
 
 ## Our Pledge
 
-We pledge to make participation in our project a harassment-free experience for everyone.
+We are committed to making this project a welcoming, harassment-free experience
+for everyone, regardless of background, experience level, or identity.
 
-## Our Standards
+## Standards
 
-**Positive behavior:**
-- Being respectful and kind
-- Welcoming newcomers
-- Accepting constructive feedback
-- Focusing on what's best for the community
+**Positive behaviour:**
+- Being respectful and kind to other contributors
+- Welcoming newcomers and helping them get started
+- Accepting constructive feedback gracefully
 
-**Unacceptable behavior:**
-- Harassment or discrimination
-- Trolling or insulting comments
-- Personal or political attacks
-- Publishing private information
+**Unacceptable behaviour:**
+- Harassment, insults, or personal attacks
+- Trolling or deliberately disruptive comments
+- Publishing others' private information without consent
 
 ## Enforcement
 
-Violations can be reported to [team email]. All complaints will be reviewed.
+Violations can be reported to the maintainers. All reports will be handled with discretion.
 
-## Attribution
-
-Adapted from [Contributor Covenant](https://www.contributor-covenant.org/).
+Adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.1.

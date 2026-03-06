@@ -1,6 +1,32 @@
+# ── Secrets — NEVER commit these ──
 .env
 .env.local
 *.env
+
+# ── Python ──
 venv/
 __pycache__/
 *.pyc
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# ── Testing ──
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── ngrok ──
+ngrok.exe
+ngrok

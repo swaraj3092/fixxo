@@ -1,61 +1,92 @@
-# Contributing to Smart Hostel Complaint System
+# Contributing
 
-Thank you for your interest! Here's how to contribute.
+Thank you for your interest in improving this project!
 
-## 🚀 Quick Start
+---
 
-1. **Fork the repository**
-2. **Clone your fork:**
-```bash
-   git clone https://github.com/swaraj3092/smart-hostel-complaint-system.git
-```
-3. **Create a branch:**
-```bash
-   git checkout -b feature/your-feature-name
-```
-4. **Make changes and commit:**
-```bash
-   git commit -m "feat: Add your feature"
-```
-5. **Push and create PR:**
-```bash
-   git push origin feature/your-feature-name
-```
+## Quick Start
 
-## 📋 Development Setup
 ```bash
-# Install dependencies
+# Fork on GitHub, then:
+git clone https://github.com/YOUR_USERNAME/smart-hostel-complaint-system.git
+cd smart-hostel-complaint-system
+
+git checkout -b feature/your-feature-name
+
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+venv\Scripts\activate
 pip install -r requirements.txt
 
-# Copy environment template
 cp .env.example .env
-# Edit .env with your credentials
+# Fill in your own credentials
 
-# Run locally
-python src/app.py
+# Make changes, then:
+python -m pytest tests/ -v
+git add .
+git commit -m "feat: your description"
+git push origin feature/your-feature-name
+# Open a Pull Request on GitHub
 ```
 
-## 🎯 Good First Issues
+---
 
-Look for issues labeled `good first issue` - these are perfect for newcomers!
+## Good First Issues
 
-## 📝 Code Style
+Look for the `good first issue` label in GitHub Issues. Current ones:
+- Add Hindi language keywords to `ai_classifier_simple.py`
+- Add screenshots of the WhatsApp flow to README
+- Write tests for FOOD and CLEANLINESS categories
+- Implement LOW priority detection
 
-- Follow PEP 8 for Python code
-- Add docstrings to all functions
-- Write tests for new features
+---
 
-## 🔍 Commit Message Format
+## Branch Naming
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation only
-- `test:` Adding tests
-- `chore:` Maintenance
+```
+feature/add-hindi-keywords
+fix/room-number-4-digit-regex
+docs/add-architecture-diagram
+test/add-food-category-tests
+```
 
-## 🤝 Code of Conduct
+---
 
-Be respectful and inclusive. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+## Commit Format
+
+We use [Conventional Commits](https://www.conventionalcommits.org):
+
+```
+feat: add Hindi keyword support to classifier
+fix: fix room number not extracting 4-digit values
+docs: add WhatsApp demo screenshots to README
+test: add 5 new tests for SECURITY category
+chore: update requirements.txt
+```
+
+---
+
+## Code Rules
+
+- Follow PEP 8
+- Add docstrings to every function (see existing code for format)
+- Never hardcode credentials — always use `os.getenv()`
+- Never commit `.env` — the CI pipeline will catch this and fail
+
+---
+
+## Security Rule
+
+The `.gitignore` already blocks `.env`. But double check before pushing:
+```bash
+git status   # .env should NOT appear here
+```
+
+---
+
+## Pull Request Process
+
+1. Open a PR
+2. CI runs automatically (must pass)
+3. Team member reviews within 48 hours
+4. Address feedback
+5. Merge after approval

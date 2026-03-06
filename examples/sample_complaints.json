@@ -1,0 +1,58 @@
+[
+  {
+    "message": "KP-7 hostel room 312 fan not working urgent",
+    "expected_category": "ELECTRICAL",
+    "expected_priority": "URGENT",
+    "expected_hostel": "KP-7",
+    "expected_room": "312"
+  },
+  {
+    "message": "WiFi not working in Kaveri Hostel Room 305 urgent",
+    "expected_category": "WIFI",
+    "expected_priority": "URGENT",
+    "expected_hostel": "KAVERIHOSTEL",
+    "expected_room": "305"
+  },
+  {
+    "message": "Bathroom tap leaking in Block A Room 204",
+    "expected_category": "PLUMBING",
+    "expected_priority": "MEDIUM",
+    "expected_hostel": "BLOCKA",
+    "expected_room": "204"
+  },
+  {
+    "message": "There is a stranger in corridor at night",
+    "expected_category": "SECURITY",
+    "expected_priority": "MEDIUM",
+    "expected_hostel": null,
+    "expected_room": null
+  },
+  {
+    "message": "The mess food quality is very bad today",
+    "expected_category": "FOOD",
+    "expected_priority": "MEDIUM",
+    "expected_hostel": null,
+    "expected_room": null
+  },
+  {
+    "message": "No water since morning urgent emergency",
+    "expected_category": "PLUMBING",
+    "expected_priority": "URGENT",
+    "expected_hostel": null,
+    "expected_room": null
+  },
+  {
+    "message": "The fan is completely broken in Block B Room 302",
+    "expected_category": "ELECTRICAL",
+    "expected_priority": "HIGH",
+    "expected_hostel": "BLOCKB",
+    "expected_room": "302"
+  },
+  {
+    "message": "Room #101 has garbage piled up for 3 days",
+    "expected_category": "CLEANLINESS",
+    "expected_priority": "MEDIUM",
+    "expected_hostel": null,
+    "expected_room": "101"
+  }
+]
