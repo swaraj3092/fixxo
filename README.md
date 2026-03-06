@@ -44,22 +44,6 @@ acknowledgement, no accountability. Complaints get lost, repeated, or simply ign
 ```
 KP-7 hostel room 312 fan not working urgent
 ```
-## 📸 Screenshots
-
-### Student sends complaint → Instant WhatsApp reply
-![WhatsApp Complaint](docs/screenshots/whatsapp-complaint.jpeg)
-
-### Department receives email with one-click resolve
-![Department Email](docs/screenshots/department-email.jpeg)
-
-### Department clicks resolve → Confirmation page
-![Resolved Page](docs/screenshots/resolved-page.jpeg)
-
-### Student receives resolution notification
-![Resolution Notification](docs/screenshots/resolution-notification.jpeg)
-
-
-
 
 **System replies instantly:**
 ```
@@ -86,6 +70,23 @@ Your complaint #A3F8C201 has been resolved!
 
 Thank you for reporting. — Hostel Management
 ```
+
+
+## 📸 Screenshots
+
+### Student sends complaint → Instant WhatsApp reply
+![WhatsApp Complaint](docs/screenshots/whatsapp-complaint.jpeg)
+
+### Department receives email with one-click resolve
+![Department Email](docs/screenshots/department-email.jpeg)
+
+### Department clicks resolve → Confirmation page
+![Resolved Page](docs/screenshots/resolved-page.jpeg)
+
+### Student receives resolution notification
+![Resolution Notification](docs/screenshots/resolution-notification.jpeg)
+
+
 
 **Live deployment:** [https://hostel-complaint-system-1-r1g3.onrender.com](https://hostel-complaint-system-1-r1g3.onrender.com)
 
