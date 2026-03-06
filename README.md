@@ -184,7 +184,7 @@ Full guide → [docs/INSTALLATION.md](docs/INSTALLATION.md)
 ## 📂 Project Structure
 
 ```
-smart-hostel-complaint-system/
+fixxo/
 │
 ├── src/
 │   ├── app.py                   # Flask server — all HTTP routes
