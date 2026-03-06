@@ -1,0 +1,6 @@
+flask
+twilio
+supabase
+resend
+python-dotenv
+requests
