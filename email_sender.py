@@ -159,3 +159,39 @@ def send_department_email(complaint, resolve_base_url):
         print("=" * 60)
 
         return False
+
+
+def send_whatsapp_notification(complaint):
+    """Send WhatsApp notification to student when complaint is resolved."""
+    try:
+        from twilio.rest import Client
+        import os
+        
+        account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        twilio_number = os.getenv("TWILIO_WHATSAPP_NUMBER")
+        
+        client = Client(account_sid, auth_token)
+        
+        message_body = f"""✅ Great news!
+
+Your complaint #{complaint['resolve_token']} has been RESOLVED!
+
+📋 Issue: {complaint['category']}
+🏢 Location: {complaint.get('hostel_name', 'N/A')}, Room {complaint.get('room_number', 'N/A')}
+✅ Resolved by: {complaint.get('resolved_by', 'Department')}
+
+Thank you for reporting! 🎉"""
+        
+        message = client.messages.create(
+            from_=twilio_number,
+            body=message_body,
+            to=complaint['student_phone']
+        )
+        
+        print(f"✅ WhatsApp notification sent: {message.sid}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to send WhatsApp notification: {e}")
+        return False

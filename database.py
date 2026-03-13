@@ -1,143 +1,194 @@
+from supabase import create_client
 import os
-import uuid
-import secrets
-from supabase import create_client, Client
 from dotenv import load_dotenv
+from datetime import datetime
+import uuid
 
 load_dotenv()
 
-# Initialize Supabase client
-supabase: Client = create_client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_KEY")
-)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-def save_complaint(student_phone, raw_message, ai_result):
-    """
-    Save a new complaint to the database.
-    
-    Args:
-        student_phone: WhatsApp number of student
-        raw_message: Original message text
-        ai_result: Dictionary from ML classifier
-    
-    Returns:
-        The saved complaint record with ID
-    """
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+def check_student_exists(phone_number):
+    """Check if student exists in database."""
     try:
-        # Generate a unique resolve token for email link
-        resolve_token = secrets.token_urlsafe(32)
+        response = supabase.table("students").select("*").eq("phone_number", phone_number).execute()
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        return None
+    except Exception as e:
+        print(f"❌ Error checking student: {e}")
+        return None
+
+
+def get_student_by_phone(phone_number):
+    """Get student details by phone number."""
+    try:
+        response = supabase.table("students").select("*").eq("phone_number", phone_number).execute()
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        return None
+    except Exception as e:
+        print(f"❌ Error getting student: {e}")
+        return None
+
+
+def register_student(phone_number, college_id, roll_number, student_name, hostel_name, room_number, email=None):
+    """Register a new student."""
+    try:
+        data = {
+            "phone_number": phone_number,
+            "college_id": college_id,
+            "roll_number": roll_number,
+            "student_name": student_name,
+            "hostel_name": hostel_name,
+            "room_number": room_number,
+            "email": email,
+            "is_approved": True
+        }
         
-        # Build the complaint record
-        complaint = {
+        response = supabase.table("students").insert(data).execute()
+        
+        if response.data and len(response.data) > 0:
+            print(f"✅ Student registered: {student_name}")
+            return response.data[0]
+        return None
+    except Exception as e:
+        print(f"❌ Error registering student: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def create_complaint(student_id, student_phone, student_name, hostel_name, room_number, 
+                    category, priority, raw_message, summary, department_email, confidence):
+    """Create a new complaint."""
+    try:
+        resolve_token = str(uuid.uuid4())[:8].upper()
+        
+        data = {
+            "student_id": student_id,
             "student_phone": student_phone,
-            "hostel_name": ai_result.get("hostel_name"),
-            "room_number": ai_result.get("room_number"),
-            "category": ai_result.get("category", "OTHER"),
-            "priority": ai_result.get("priority", "MEDIUM"),
+            "student_name": student_name,
+            "hostel_name": hostel_name,
+            "room_number": room_number,
+            "category": category,
+            "priority": priority,
             "raw_message": raw_message,
-            "summary": ai_result.get("summary", raw_message[:100]),
-            "department_email": ai_result.get("department_email"),
-            "confidence": ai_result.get("confidence", 0),
+            "summary": summary,
+            "department_email": department_email,
+            "confidence": confidence,
             "status": "PENDING",
             "resolve_token": resolve_token
         }
         
-        # Insert into Supabase
-        response = supabase.table("complaints").insert(complaint).execute()
+        print(f"📝 Creating complaint with data: {data}")
         
-        saved_record = response.data[0]
-        complaint_id = saved_record["id"]
+        response = supabase.table("complaints").insert(data).execute()
         
-        print(f"✅ Complaint saved to database!")
-        print(f"   ID: {complaint_id}")
-        print(f"   Status: PENDING")
-        
-        return saved_record
-        
+        if response.data and len(response.data) > 0:
+            print(f"✅ Complaint created: {resolve_token}")
+            return response.data[0]
+        return None
     except Exception as e:
-        print(f"❌ Database error while saving: {e}")
+        print(f"❌ Error creating complaint: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
-def resolve_complaint(resolve_token, resolution_note=None):
-    """
-    Mark a complaint as resolved using the resolve token.
-    
-    Args:
-        resolve_token: The unique token from the email link
-        resolution_note: Optional note from department
-    
-    Returns:
-        The updated complaint record
-    """
+def get_all_students():
+    """Get all students."""
     try:
-        from datetime import datetime, timezone
+        response = supabase.table("students").select("*").order("created_at", desc=True).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"❌ Error getting students: {e}")
+        return []
+
+
+def get_all_complaints(status=None):
+    """Get all complaints, optionally filtered by status."""
+    try:
+        query = supabase.table("complaints").select("*")
         
-        # Update the complaint status
-        update_data = {
-            "status": "RESOLVED",
-            "resolved_at": datetime.now(timezone.utc).isoformat(),
-            "resolution_note": resolution_note or "Issue has been resolved."
+        # Filter by status if provided
+        if status:
+            query = query.eq("status", status)
+        
+        response = query.order("created_at", desc=True).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"❌ Error getting complaints: {e}")
+        return []
+
+
+def get_dashboard_stats():
+    """Get dashboard statistics."""
+    try:
+        # Get total students
+        students_response = supabase.table("students").select("id", count="exact").execute()
+        total_students = students_response.count if students_response.count else 0
+        
+        # Get total complaints
+        complaints_response = supabase.table("complaints").select("id", count="exact").execute()
+        total_complaints = complaints_response.count if complaints_response.count else 0
+        
+        # Get pending complaints
+        pending_response = supabase.table("complaints").select("id", count="exact").eq("status", "PENDING").execute()
+        pending = pending_response.count if pending_response.count else 0
+        
+        # Get resolved complaints
+        resolved_response = supabase.table("complaints").select("id", count="exact").eq("status", "RESOLVED").execute()
+        resolved = resolved_response.count if resolved_response.count else 0
+        
+        return {
+            "total_students": total_students,
+            "total_complaints": total_complaints,
+            "pending": pending,
+            "resolved": resolved
+        }
+    except Exception as e:
+        print(f"❌ Error getting stats: {e}")
+        return {
+            "total_students": 0,
+            "total_complaints": 0,
+            "pending": 0,
+            "resolved": 0
+        }
+
+
+def update_complaint_status(complaint_id, status, resolved_by=None, admin_notes=None):
+    """Update complaint status."""
+    try:
+        data = {
+            "status": status,
+            "resolved_at": datetime.utcnow().isoformat() if status == "RESOLVED" else None,
+            "resolved_by": resolved_by,
+            "admin_notes": admin_notes
         }
         
-        response = (
-            supabase.table("complaints")
-            .update(update_data)
-            .eq("resolve_token", resolve_token)
-            .execute()
-        )
+        response = supabase.table("complaints").update(data).eq("id", complaint_id).execute()
         
-        if response.data:
-            record = response.data[0]
-            print(f"✅ Complaint {record['id']} marked as RESOLVED!")
-            return record
-        else:
-            print(f"❌ No complaint found with that token")
-            return None
-            
+        if response.data and len(response.data) > 0:
+            print(f"✅ Complaint status updated: {status}")
+            return response.data[0]
+        return None
     except Exception as e:
-        print(f"❌ Database error while resolving: {e}")
+        print(f"❌ Error updating complaint: {e}")
         return None
 
 
 def get_complaint_by_token(resolve_token):
-    """Get a complaint record by its resolve token."""
+    """Get complaint by resolve token."""
     try:
-        response = (
-            supabase.table("complaints")
-            .select("*")
-            .eq("resolve_token", resolve_token)
-            .execute()
-        )
-        
-        if response.data:
+        response = supabase.table("complaints").select("*").eq("resolve_token", resolve_token).execute()
+        if response.data and len(response.data) > 0:
             return response.data[0]
         return None
-        
     except Exception as e:
-        print(f"❌ Database error: {e}")
+        print(f"❌ Error getting complaint by token: {e}")
         return None
-
-
-def get_all_complaints():
-    """Get all complaints ordered by newest first."""
-    try:
-        response = (
-            supabase.table("complaints")
-            .select("*")
-            .order("created_at", desc=True)
-            .execute()
-        )
-        return response.data
-        
-    except Exception as e:
-        print(f"❌ Database error: {e}")
-        return []
-
-
-# Test function
-if __name__ == "__main__":
-    print("🧪 Testing database connection...")
-    complaints = get_all_complaints()
-    print(f"✅ Connected! Total complaints in DB: {len(complaints)}")
