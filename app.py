@@ -16,9 +16,10 @@ from database import (
     get_all_students,
     get_all_complaints,
     get_dashboard_stats,
-    update_complaint_status
+    update_complaint_status,
+    get_complaint_by_token
 )
-from ai_classifier import classify_complaint
+from ai_classifier_simple import classify_complaint
 from email_sender import send_department_email, send_whatsapp_notification
 
 load_dotenv()
@@ -26,39 +27,46 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "fixxo-super-secret-key-change-in-production-2026")
 
-# CORS Configuration - UPDATED
+# CORS Configuration with credentials support
 CORS(app, 
-     resources={r"/api/*": {"origins": "http://localhost:3000"}},
+     resources={r"/api/*": {"origins": ["http://localhost:3000", "https://hostel-complaint-system-1-r1g3.onrender.com"]}},
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 
-BASE_URL = os.getenv("BASE_URL", "http://localhost:5000")
+@app.route("/", methods=["GET"])
+def home():
+    """Health check endpoint."""
+    return "🏠 Fixxo API is running!", 200
 
-# ============================================
-# WHATSAPP WEBHOOK (UPDATED!)
-# ============================================
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     """Handle incoming WhatsApp messages."""
     try:
-        # Get message details
-        incoming_msg = request.form.get("Body", "").strip()
-        from_number = request.form.get("From", "")
+        incoming_msg = request.values.get("Body", "").strip()
+        from_number = request.values.get("From", "")
         
-        print(f"📱 Message from {from_number}: {incoming_msg}")
+        print("=" * 60)
+        print("📱 INCOMING WHATSAPP MESSAGE")
+        print(f"From: {from_number}")
+        print(f"Message: {incoming_msg}")
+        
+        # Create Twilio response
+        resp = MessagingResponse()
+        msg = resp.message()
         
         # Check if student is registered
         student = check_student_exists(from_number)
         
-        resp = MessagingResponse()
-        msg = resp.message()
-        
         if not student:
-            # Student not registered - send registration link
-            registration_link = f"{BASE_URL}/register?phone={from_number.replace('whatsapp:', '')}"
+            print(f"❌ Student not registered: {from_number}")
+            # Send registration link
+            base_url = os.getenv("BASE_URL", "http://localhost:3000")
+            # Extract phone number without 'whatsapp:+' prefix
+            phone = from_number.replace("whatsapp:+", "")
+            registration_link = f"{base_url}/register?phone={phone}"
             
             msg.body(f"""👋 Welcome to Fixxo!
 
@@ -67,65 +75,100 @@ Please register first (one-time only):
 
 After registration, send your complaint again!""")
             
-            print("⚠️ Student not registered, sending registration link")
+            print(f"✅ Registration link sent: {registration_link}")
+            print("=" * 60)
             return str(resp)
         
         # Student is registered - process complaint
         print(f"✅ Student found: {student['student_name']}")
+        print(f"   Hostel: {student['hostel_name']}")
+        print(f"   Room: {student['room_number']}")
         
-        # Classify complaint
+        # Classify the complaint using AI
         classification = classify_complaint(incoming_msg)
+        print(f"🤖 AI Classification: {classification['category']} ({classification['priority']})")
+        print(f"   Summary: {classification['summary']}")
+        print(f"   Department: {classification['department_email']}")
         
-        # Prepare complaint data with student info
-        complaint_data = {
-            "student_id": student["id"],
-            "student_phone": from_number,
-            "student_name": student["student_name"],
-            "hostel_name": student["hostel_name"],
-            "room_number": student["room_number"],
-            "category": classification["category"],
-            "priority": classification["priority"],
-            "raw_message": incoming_msg,
-            "summary": classification["summary"],
-            "department_email": classification["department_email"],
-            "confidence": classification["confidence"],
-            "status": "PENDING"
-        }
+        # Create complaint in database with ALL required arguments
+        complaint = create_complaint(
+            student_id=student['id'],
+            student_phone=from_number,
+            student_name=student['student_name'],
+            hostel_name=student['hostel_name'],
+            room_number=student['room_number'],
+            category=classification['category'],
+            priority=classification['priority'],
+            raw_message=incoming_msg,
+            summary=classification['summary'],
+            department_email=classification['department_email'],
+            confidence=classification['confidence']
+        )
         
-        # Save to database
-        saved_complaint = create_complaint(complaint_data)
+        if not complaint:
+            print("❌ Failed to create complaint in database")
+            msg.body("Sorry, something went wrong. Please try again later.")
+            print("=" * 60)
+            return str(resp)
         
-        if saved_complaint:
-            # Send email to department
-            send_department_email(saved_complaint)
-            
-            # Send confirmation to student
-            msg.body(f"""✅ Complaint Received!
+        print(f"✅ Complaint created: #{complaint['resolve_token']}")
+        
+        # Send email to department
+        print("📧 Sending email to department...")
+        email_sent = send_department_email(complaint)
+        if email_sent:
+            print("✅ Email sent successfully")
+        else:
+            print("❌ Email failed to send")
+        
+        # Send confirmation to student
+        confirmation_message = f"""✅ Complaint Received!
 
-📋 ID: #{saved_complaint['resolve_token']}
+📋 ID: #{complaint['resolve_token']}
 👤 Name: {student['student_name']}
 🏢 Location: {student['hostel_name']}, Room {student['room_number']}
 🏷️ Category: {classification['category']}
 ⚡ Priority: {classification['priority']}
-📧 Assigned to: {classification['department_email'].split('@')[0].title()} Department
+📧 Assigned to: {classification['department_email'].split('@')[0].replace('_', ' ').title()} Department
 
-You'll be notified once resolved! 🔔""")
-            
-            print(f"✅ Complaint #{saved_complaint['resolve_token']} created")
-        else:
-            msg.body("❌ Sorry, something went wrong. Please try again later.")
+You'll be notified once resolved! 🔔"""
+        
+        msg.body(confirmation_message)
+        print("✅ WhatsApp confirmation sent to student")
+        print("=" * 60)
         
         return str(resp)
         
     except Exception as e:
         print(f"❌ Webhook error: {e}")
+        import traceback
+        traceback.print_exc()
+        print("=" * 60)
+        
+        # Send error message to user
         resp = MessagingResponse()
-        resp.message("❌ System error. Please contact hostel office.")
+        msg = resp.message()
+        msg.body("System error. Please contact hostel office.")
         return str(resp)
 
-# ============================================
-# REGISTRATION API (NEW!)
-# ============================================
+
+@app.route("/api/check-phone", methods=["GET"])
+def check_phone():
+    """Check if phone number is registered."""
+    phone = request.args.get("phone")
+    if not phone:
+        return jsonify({"error": "Phone number required"}), 400
+    
+    # Add whatsapp: prefix and + if not present
+    if not phone.startswith("whatsapp:"):
+        # Add + if not present
+        if not phone.startswith("+"):
+            phone = f"+{phone}"
+        phone = f"whatsapp:{phone}"
+    
+    student = check_student_exists(phone)
+    return jsonify({"registered": student is not None})
+
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
@@ -193,26 +236,16 @@ def api_register():
         print("=" * 60)
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/check-phone", methods=["GET"])
-def check_phone():
-    """Check if phone number is registered."""
-    phone = request.args.get("phone")
-    if not phone:
-        return jsonify({"error": "Phone number required"}), 400
-    
-    # Add whatsapp: prefix and + if not present
-    if not phone.startswith("whatsapp:"):
-        # Add + if not present
-        if not phone.startswith("+"):
-            phone = f"+{phone}"
-        phone = f"whatsapp:{phone}"
-    
-    student = check_student_exists(phone)
-    return jsonify({"registered": student is not None})
 
-# ============================================
-# ADMIN AUTH (NEW!)
-# ============================================
+def require_admin(f):
+    """Decorator to require admin authentication."""
+    def decorated_function(*args, **kwargs):
+        if "admin_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
+
 
 @app.route("/api/admin/login", methods=["POST"])
 def admin_login():
@@ -288,167 +321,194 @@ def admin_login():
         print("=" * 60)
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/api/admin/logout", methods=["POST"])
 def admin_logout():
     """Admin logout."""
     session.clear()
     return jsonify({"success": True}), 200
 
-def admin_required(f):
-    """Decorator to require admin login."""
-    from functools import wraps
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "admin_id" not in session:
-            return jsonify({"error": "Unauthorized"}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
-# ============================================
-# ADMIN - STUDENTS API (NEW!)
-# ============================================
-
-@app.route("/api/admin/students", methods=["GET"])
-@admin_required
-def admin_get_students():
-    """Get all students."""
-    students = get_all_students()
-    return jsonify(students), 200
-
-@app.route("/api/admin/students", methods=["POST"])
-@admin_required
-def admin_add_student():
-    """Manually add student."""
-    return api_register()  # Reuse registration logic
-
-@app.route("/api/admin/students/<student_id>", methods=["PUT"])
-@admin_required
-def admin_update_student(student_id):
-    """Update student info."""
-    try:
-        data = request.json
-        student = update_student(student_id, data)
-        if student:
-            return jsonify(student), 200
-        else:
-            return jsonify({"error": "Student not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/students/<student_id>", methods=["DELETE"])
-@admin_required
-def admin_delete_student(student_id):
-    """Delete student."""
-    if delete_student(student_id):
-        return jsonify({"success": True}), 200
-    else:
-        return jsonify({"error": "Delete failed"}), 500
-
-# ============================================
-# ADMIN - COMPLAINTS API (NEW!)
-# ============================================
-
-@app.route("/api/admin/complaints", methods=["GET"])
-@admin_required
-def admin_get_complaints():
-    """Get all complaints."""
-    status = request.args.get("status")  # Optional filter
-    complaints = get_all_complaints(status=status)
-    return jsonify(complaints), 200
-
-@app.route("/api/admin/complaints/<complaint_id>", methods=["PUT"])
-@admin_required
-def admin_update_complaint(complaint_id):
-    """Update complaint (e.g., mark resolved)."""
-    try:
-        data = request.json
-        # Implementation depends on what you want to update
-        # For now, just return success
-        return jsonify({"success": True}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/complaints/<complaint_id>/note", methods=["POST"])
-@admin_required
-def admin_add_note(complaint_id):
-    """Add internal note to complaint."""
-    try:
-        data = request.json
-        note = data.get("note")
-        if not note:
-            return jsonify({"error": "Note required"}), 400
-        
-        complaint = add_admin_note(complaint_id, note)
-        if complaint:
-            return jsonify(complaint), 200
-        else:
-            return jsonify({"error": "Complaint not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# ============================================
-# ADMIN - ANALYTICS (NEW!)
-# ============================================
 
 @app.route("/api/admin/stats", methods=["GET"])
-@admin_required
-def admin_get_stats():
+@require_admin
+def admin_stats():
     """Get dashboard statistics."""
-    stats = get_dashboard_stats()
-    return jsonify(stats), 200
+    try:
+        stats = get_dashboard_stats()
+        return jsonify(stats), 200
+    except Exception as e:
+        print(f"❌ Error getting stats: {e}")
+        return jsonify({"error": str(e)}), 500
 
-# ============================================
-# RESOLVE COMPLAINT (EXISTING - KEEP AS IS)
-# ============================================
+
+@app.route("/api/admin/students", methods=["GET"])
+@require_admin
+def admin_get_students():
+    """Get all students."""
+    try:
+        students = get_all_students()
+        return jsonify(students), 200
+    except Exception as e:
+        print(f"❌ Error getting students: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/complaints", methods=["GET"])
+@require_admin
+def admin_get_complaints():
+    """Get all complaints."""
+    try:
+        status = request.args.get("status")
+        complaints = get_all_complaints(status=status)
+        return jsonify(complaints), 200
+    except Exception as e:
+        print(f"❌ Error getting complaints: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/complaints/<complaint_id>", methods=["PUT"])
+@require_admin
+def admin_update_complaint(complaint_id):
+    """Update complaint status."""
+    try:
+        data = request.json
+        status = data.get("status")
+        admin_notes = data.get("admin_notes")
+        
+        resolved_by = session.get("admin_username", "Admin")
+        
+        complaint = update_complaint_status(
+            complaint_id=complaint_id,
+            status=status,
+            resolved_by=resolved_by,
+            admin_notes=admin_notes
+        )
+        
+        if complaint:
+            # Send WhatsApp notification if resolved
+            if status == "RESOLVED":
+                send_whatsapp_notification(complaint)
+            
+            return jsonify({"success": True, "complaint": complaint}), 200
+        else:
+            return jsonify({"error": "Failed to update complaint"}), 500
+            
+    except Exception as e:
+        print(f"❌ Error updating complaint: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/resolve", methods=["GET"])
-def resolve():
-    """Mark complaint as resolved (from email link)."""
-    token = request.args.get("token")
-    
-    if not token:
-        return "❌ Invalid resolve link", 400
-    
-    complaint = get_complaint_by_token(token)
-    
-    if not complaint:
-        return "❌ Complaint not found", 404
-    
-    if complaint["status"] == "RESOLVED":
-        return "✅ This complaint was already resolved", 200
-    
-    # Mark as resolved
-    resolved_complaint = resolve_complaint(token, resolved_by="Department")
-    
-    if resolved_complaint:
-        # Send WhatsApp notification to student
-        send_whatsapp_notification(resolved_complaint)
+def resolve_complaint():
+    """Resolve complaint via email link."""
+    try:
+        token = request.args.get("token")
+        if not token:
+            return "❌ Invalid resolution link", 400
+        
+        # Get complaint by token
+        complaint = get_complaint_by_token(token)
+        if not complaint:
+            return "❌ Complaint not found", 404
+        
+        if complaint['status'] == 'RESOLVED':
+            return f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Already Resolved</title>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    }}
+                    .container {{
+                        background: white;
+                        padding: 40px;
+                        border-radius: 20px;
+                        text-align: center;
+                        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                        max-width: 500px;
+                    }}
+                    .icon {{ font-size: 80px; margin-bottom: 20px; }}
+                    h1 {{ color: #1f2937; margin-bottom: 20px; }}
+                    p {{ color: #6b7280; font-size: 18px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="icon">✅</div>
+                    <h1>Already Resolved</h1>
+                    <p>This complaint was already marked as resolved.</p>
+                    <p><strong>ID:</strong> #{complaint['resolve_token']}</p>
+                </div>
+            </body>
+            </html>
+            """
+        
+        # Update complaint status
+        updated_complaint = update_complaint_status(
+            complaint_id=complaint['id'],
+            status='RESOLVED',
+            resolved_by='Department'
+        )
+        
+        # Send WhatsApp notification
+        if updated_complaint:
+            send_whatsapp_notification(updated_complaint)
         
         return f"""
+        <!DOCTYPE html>
         <html>
-        <head><title>Complaint Resolved</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
-            <h1 style="color: green;">✅ Complaint Resolved!</h1>
-            <p>Complaint ID: #{token}</p>
-            <p>Student has been notified via WhatsApp.</p>
-            <p><a href="{BASE_URL}/api/admin/complaints">View all complaints</a></p>
+        <head>
+            <title>Complaint Resolved</title>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                }}
+                .container {{
+                    background: white;
+                    padding: 40px;
+                    border-radius: 20px;
+                    text-align: center;
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                    max-width: 500px;
+                }}
+                .icon {{ font-size: 80px; margin-bottom: 20px; }}
+                h1 {{ color: #1f2937; margin-bottom: 20px; }}
+                p {{ color: #6b7280; font-size: 18px; margin-bottom: 10px; }}
+                .success {{ color: #10b981; font-weight: bold; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="icon">🎉</div>
+                <h1>Complaint Resolved!</h1>
+                <p><strong>ID:</strong> #{complaint['resolve_token']}</p>
+                <p><strong>Category:</strong> {complaint['category']}</p>
+                <p class="success">✅ Student has been notified via WhatsApp</p>
+            </div>
         </body>
         </html>
-        """, 200
-    else:
-        return "❌ Failed to resolve complaint", 500
+        """
+        
+    except Exception as e:
+        print(f"❌ Resolution error: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"❌ Error: {str(e)}", 500
 
-# ============================================
-# HEALTH CHECK (EXISTING)
-# ============================================
-
-@app.route("/", methods=["GET"])
-def home():
-    return "🏠 Fixxo API is running!", 200
-
-# ============================================
-# RUN SERVER
-# ============================================
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
