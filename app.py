@@ -24,7 +24,7 @@ from email_sender import send_department_email, send_whatsapp_notification
 
 load_dotenv()
 
-app = Flask(__name__, static_folder='build', static_url_path='')
+app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "fixxo-super-secret-key-change-in-production-2026")
 
 # CORS Configuration
@@ -377,15 +377,64 @@ def resolve_complaint():
         return f"❌ Error: {str(e)}", 500
 
 
-# Serve React App - IMPORTANT: This must be LAST!
+# === REACT FRONTEND SERVING ===
+# This MUST be at the end, after all API routes!
+
+@app.route('/static/<path:filename>')
+def serve_static_files(filename):
+    """Serve static files (CSS, JS, images) from React build."""
+    return send_from_directory(os.path.join(app.root_path, 'build', 'static'), filename)
+
+
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon."""
+    return send_from_directory(os.path.join(app.root_path, 'build'), 'favicon.ico')
+
+
+@app.route('/manifest.json')
+def manifest():
+    """Serve manifest."""
+    return send_from_directory(os.path.join(app.root_path, 'build'), 'manifest.json')
+
+
+@app.route('/logo192.png')
+def logo192():
+    """Serve logo."""
+    return send_from_directory(os.path.join(app.root_path, 'build'), 'logo192.png')
+
+
+@app.route('/logo512.png')
+def logo512():
+    """Serve logo."""
+    return send_from_directory(os.path.join(app.root_path, 'build'), 'logo512.png')
+
+
+# Catch-all route - MUST be absolute last!
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
-def serve(path):
-    """Serve React frontend."""
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, 'index.html')
+def serve_react_app(path):
+    """
+    Serve React app for all non-API routes.
+    This handles React Router paths like /register, /admin/login, etc.
+    """
+    # Skip if it's an API route (these should be handled by specific routes above)
+    if path.startswith('api/'):
+        return jsonify({"error": "API endpoint not found"}), 404
+    
+    if path.startswith('webhook'):
+        return jsonify({"error": "Invalid webhook request"}), 404
+    
+    if path.startswith('resolve'):
+        return jsonify({"error": "Invalid resolution link"}), 404
+    
+    # Check if it's a static file request
+    file_path = os.path.join(app.root_path, 'build', path)
+    if path and os.path.isfile(file_path):
+        return send_from_directory(os.path.join(app.root_path, 'build'), path)
+    
+    # Otherwise, serve index.html for React Router to handle
+    return send_from_directory(os.path.join(app.root_path, 'build'), 'index.html')
 
 
 if __name__ == "__main__":
