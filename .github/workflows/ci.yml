@@ -1,0 +1,62 @@
+name: CI — Test & Verify
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask twilio supabase resend python-dotenv requests groq pytest
+
+      - name: Verify project structure
+        run: |
+          echo "📁 Checking required files..."
+          test -f src/app.py                  && echo "✅ app.py"
+          test -f src/ai_classifier_simple.py && echo "✅ ai_classifier_simple.py"
+          test -f src/database.py             && echo "✅ database.py"
+          test -f src/email_sender.py         && echo "✅ email_sender.py"
+          test -f requirements.txt            && echo "✅ requirements.txt"
+          test -f render.yaml                 && echo "✅ render.yaml"
+          test -f .env.example                && echo "✅ .env.example"
+
+      - name: Confirm .env is NOT committed
+        run: |
+          if [ -f .env ]; then
+            echo "❌ CRITICAL: .env file found in repo! Remove it immediately."
+            exit 1
+          fi
+          echo "✅ .env not committed (correct)"
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ -v --tb=short
+
+      - name: Smoke test — classifier core logic
+        run: |
+          cd src && python -c "
+          from ai_classifier_simple import classify_complaint
+
+          # Exact message from test_gemini.py
+          result = classify_complaint('KP-7 hostel room 312 fan not working urgent')
+          assert result['category'] == 'ELECTRICAL', f'Got: {result[\"category\"]}'
+          assert result['priority'] == 'URGENT', f'Got: {result[\"priority\"]}'
+          assert result['hostel_name'] == 'KP-7', f'Got: {result[\"hostel_name\"]}'
+          assert result['room_number'] == '312', f'Got: {result[\"room_number\"]}'
+          print('✅ Smoke test passed: KP-7 fan complaint classified correctly')
+          "
