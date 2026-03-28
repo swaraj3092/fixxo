@@ -31,4 +31,4 @@ frontend/build/         ← Only ignore frontend/build, NOT root build/
 ngrok.exe
 
 # Project specific
-test_gemini.py
+test_gemini.pytest_groq.py 
