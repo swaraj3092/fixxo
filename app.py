@@ -30,7 +30,12 @@ app = Flask(__name__, static_folder='build/static', static_url_path='/static')
 app.secret_key = os.getenv("SECRET_KEY", "fixxo-super-secret-key-change-in-production-2026")
 
 CORS(app,
-     resources={r"/api/*": {"origins": ["http://localhost:3000", "https://hostel-complaint-system-1-r1g3.onrender.com" , "https://fixxo-v2.vercel.app"]}},
+     resources={r"/api/*": {"origins": [
+         "http://localhost:3000",
+         "https://hostel-complaint-system-1-r1g3.onrender.com",
+         "https://fixxo-v2.vercel.app",
+         re.compile(r"https://fixxo-.*\.vercel\.app")   # ← allows ALL preview URLs
+     ]}},
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
