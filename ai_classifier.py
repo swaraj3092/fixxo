@@ -16,8 +16,8 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 DEPARTMENT_EMAILS = {
     "PLUMBING":    "swarajbehera923@gmail.com",
     "ELECTRICAL":  "swarajbehera923@gmail.com",
-    "CLEANLINESS": "swarajbehera923@gmail.com",
-    "SECURITY":    "swarajbehera923@gmail.com",
+    "CLEANLINESS": "prajaktakuila19@gmail.com",
+    "SECURITY":    "prajaktakuila19@gmail.com",
     "WIFI":        "swarajbehera923@gmail.com",
     "FOOD":        "anupamyagnish87@gmail.com",
     "FURNITURE":   "swarajbehera923@gmail.com",

@@ -647,6 +647,19 @@ def get_feedback(token):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/proxy-image", methods=["GET"])
+def proxy_image():
+    import requests as req
+    from flask import Response
+    url = request.args.get("url")
+    if not url or "twilio.com" not in url:
+        return "Invalid", 403
+    try:
+        resp = req.get(url, auth=(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN")), timeout=10)
+        return Response(resp.content, content_type=resp.headers.get("Content-Type","image/jpeg"))
+    except Exception as e:
+        return str(e), 500
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
