@@ -30,8 +30,10 @@ app = Flask(__name__, static_folder='build/static', static_url_path='/static')
 app.secret_key = os.getenv("SECRET_KEY", "fixxo-super-secret-key-change-in-production-2026")
 
 CORS(app,
-     resources={r"/api/*": {"origins": "*"}},
-     supports_credentials=True)
+     resources={r"/api/*": {"origins": ["http://localhost:3000", "https://hostel-complaint-system-1-r1g3.onrender.com" , "https://fixxo-v2.vercel.app"]}},
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 
 # ─────────────────────────────────────────────
@@ -391,8 +393,8 @@ def logo512():
 def serve_react(path):
     """Catch-all: serve React index.html for any non-API route."""
     # Let the explicit API/webhook/resolve routes handle their own 404s
-    if path.startswith(('api/',)):
-    return "", 404
+    if path.startswith(('api/', 'webhook', 'resolve', 'static/')):
+        return jsonify({"error": "Not found"}), 404
 
     # If it's a real file in the build folder, serve it directly
     full_path = os.path.join(BUILD_DIR, path)
@@ -403,8 +405,6 @@ def serve_react(path):
     return send_from_directory(BUILD_DIR, 'index.html')
 
 
-otp_store = {}
- 
 @app.route("/api/send-otp", methods=["POST"])
 def send_otp():
     try:
@@ -418,16 +418,16 @@ def send_otp():
             return jsonify({"error": "Only @kiit.ac.in emails are allowed"}), 400
 
         otp_code = str(random.randint(100000, 999999))
-        expires_at = datetime.utcnow().timestamp() + 300  # 5 min
+        expires_at = int(time.time()) + 300  # 5 minutes
 
-        # Store in Supabase
-        supabase.table("otp_verifications").insert({
+        # Upsert into Supabase (replace if already exists for this email)
+        supabase.table("otp_store").upsert({
             "email": email,
             "otp": otp_code,
-            "expires_at": datetime.utcfromtimestamp(expires_at).isoformat()
+            "expires_at": expires_at
         }).execute()
 
-        # Send email
+        # Send email via Resend
         import requests as req
         resend_key = os.getenv("RESEND_API_KEY")
 
@@ -440,22 +440,34 @@ def send_otp():
             json={
                 "from": "Fixxo <onboarding@resend.dev>",
                 "to": [email],
-                "subject": "Your Fixxo OTP",
-                "html": f"<h2>Your OTP is {otp_code}</h2><p>Expires in 5 minutes</p>"
+                "subject": "Your Fixxo Verification OTP",
+                "html": f"""
+                <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:30px;border-radius:12px;border:1px solid #e5e7eb;">
+                    <h2 style="color:#667eea;">🏠 Fixxo Registration</h2>
+                    <p>Your one-time verification code is:</p>
+                    <div style="font-size:40px;font-weight:bold;letter-spacing:10px;color:#1f2937;text-align:center;padding:20px;background:#f3f4f6;border-radius:8px;margin:20px 0;">
+                        {otp_code}
+                    </div>
+                    <p style="color:#6b7280;font-size:14px;">This OTP expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>
+                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
+                    <p style="color:#9ca3af;font-size:12px;">Fixxo — Hostel Complaint Management System, KIIT University</p>
+                </div>
+                """
             }
         )
 
         if response.status_code not in [200, 201]:
-            print("Resend error:", response.text)
-            return jsonify({"error": "Failed to send OTP"}), 500
+            print(f"Resend error: {response.text}")
+            return jsonify({"error": "Failed to send OTP email"}), 500
 
-        return jsonify({"success": True}), 200
+        print(f"✅ OTP sent to {email}: {otp_code}")
+        return jsonify({"success": True, "message": f"OTP sent to {email}"}), 200
 
     except Exception as e:
-        print("OTP ERROR:", e)
+        print(f"❌ OTP send error: {e}")
         return jsonify({"error": str(e)}), 500
- 
- 
+
+
 @app.route("/api/verify-otp", methods=["POST"])
 def verify_otp():
     try:
@@ -464,33 +476,29 @@ def verify_otp():
         otp_input = data.get("otp", "").strip()
 
         if not email or not otp_input:
-            return jsonify({"error": "Email and OTP required"}), 400
+            return jsonify({"error": "Email and OTP are required"}), 400
 
-        response = supabase.table("otp_verifications") \
-            .select("*") \
-            .eq("email", email) \
-            .order("created_at", desc=True) \
-            .limit(1) \
-            .execute()
+        # Fetch from Supabase
+        result = supabase.table("otp_store").select("*").eq("email", email).execute()
 
-        if not response.data:
-            return jsonify({"error": "No OTP found"}), 400
+        if not result.data:
+            return jsonify({"error": "No OTP found. Please request a new one."}), 400
 
-        record = response.data[0]
+        stored = result.data[0]
 
-        if datetime.utcnow() > datetime.fromisoformat(record["expires_at"]):
-            return jsonify({"error": "OTP expired"}), 400
+        if int(time.time()) > stored["expires_at"]:
+            supabase.table("otp_store").delete().eq("email", email).execute()
+            return jsonify({"error": "OTP has expired. Please request a new one."}), 400
 
-        if otp_input != record["otp"]:
-            return jsonify({"error": "Incorrect OTP"}), 400
+        if otp_input != stored["otp"]:
+            return jsonify({"error": "Incorrect OTP. Please try again."}), 400
 
-# ✅ DELETE OTP after successful verification
-        supabase.table("otp_verifications").delete().eq("email", email).execute()
-
-        return jsonify({"success": True}), 200
+        # OTP verified — delete from Supabase
+        supabase.table("otp_store").delete().eq("email", email).execute()
+        return jsonify({"success": True, "message": "Email verified successfully"}), 200
 
     except Exception as e:
-        print("VERIFY ERROR:", e)
+        print(f"❌ OTP verify error: {e}")
         return jsonify({"error": str(e)}), 500
  
 
