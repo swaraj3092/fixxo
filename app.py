@@ -73,6 +73,9 @@ def webhook():
         incoming_msg = request.values.get("Body", "").strip()
         from_number = request.values.get("From", "")
 
+        media_url = request.values.get("MediaUrl0", None)  # first attached image
+        media_type = request.values.get("MediaContentType0", None)
+
         print("=" * 60)
         print("📱 INCOMING WHATSAPP MESSAGE")
         print(f"From: {from_number}")
@@ -118,7 +121,8 @@ After registration, send your complaint again!""")
             raw_message=incoming_msg,
             summary=classification['summary'],
             department_email=classification['department_email'],
-            confidence=classification['confidence']
+            confidence=classification['confidence'],
+            media_url=media_url
         )
 
         if not complaint:

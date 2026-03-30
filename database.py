@@ -63,8 +63,9 @@ def register_student(phone_number, college_id, roll_number, student_name, hostel
         return None
 
 
-def create_complaint(student_id, student_phone, student_name, hostel_name, room_number, 
-                    category, priority, raw_message, summary, department_email, confidence):
+def create_complaint(student_id, student_phone, student_name, hostel_name, room_number,
+                    category, priority, raw_message, summary, department_email, confidence,
+                    media_url=None):
     """Create a new complaint."""
     try:
         resolve_token = str(uuid.uuid4())[:8].upper()
@@ -82,7 +83,8 @@ def create_complaint(student_id, student_phone, student_name, hostel_name, room_
             "department_email": department_email,
             "confidence": confidence,
             "status": "PENDING",
-            "resolve_token": resolve_token
+            "resolve_token": resolve_token,
+            "media_url": media_url  # optional photo from WhatsApp
         }
         
         print(f"📝 Creating complaint with data: {data}")
@@ -115,7 +117,6 @@ def get_all_complaints(status=None):
     try:
         query = supabase.table("complaints").select("*")
         
-        # Filter by status if provided
         if status:
             query = query.eq("status", status)
         
@@ -129,19 +130,15 @@ def get_all_complaints(status=None):
 def get_dashboard_stats():
     """Get dashboard statistics."""
     try:
-        # Get total students
         students_response = supabase.table("students").select("id", count="exact").execute()
         total_students = students_response.count if students_response.count else 0
         
-        # Get total complaints
         complaints_response = supabase.table("complaints").select("id", count="exact").execute()
         total_complaints = complaints_response.count if complaints_response.count else 0
         
-        # Get pending complaints
         pending_response = supabase.table("complaints").select("id", count="exact").eq("status", "PENDING").execute()
         pending = pending_response.count if pending_response.count else 0
         
-        # Get resolved complaints
         resolved_response = supabase.table("complaints").select("id", count="exact").eq("status", "RESOLVED").execute()
         resolved = resolved_response.count if resolved_response.count else 0
         
