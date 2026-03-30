@@ -114,14 +114,22 @@ def send_department_email(complaint):
         """
         
         # Send email via Resend using the new API
-        params = {
-            "from": "Fixxo <onboarding@resend.dev>",
-            "to": [complaint['department_email']],
-            "subject": f"[{complaint.get('priority', 'MEDIUM')}] {complaint.get('category', 'NEW')} Issue - {complaint.get('hostel_name', 'Hostel')} Room {complaint.get('room_number', 'N/A')}",
-            "html": html_content
-        }
-        
-        email = resend.Emails.send(params)
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        gmail_user = os.getenv("GMAIL_USER")
+        gmail_pass = os.getenv("GMAIL_APP_PASSWORD")
+
+        message = MIMEMultipart("alternative")
+        message["Subject"] = f"[{complaint.get('priority', 'MEDIUM')}] {complaint.get('category', 'NEW')} Issue - {complaint.get('hostel_name', 'Hostel')} Room {complaint.get('room_number', 'N/A')}"
+        message["From"] = f"Fixxo <{gmail_user}>"
+        message["To"] = complaint['department_email']
+        message.attach(MIMEText(html_content, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(gmail_user, gmail_pass)
+            server.sendmail(gmail_user, complaint['department_email'], message.as_string())
         
         print("✅ EMAIL SENT SUCCESSFULLY")
         print(f"   Email ID: {email.get('id', 'Unknown')}")
