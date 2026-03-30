@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 import time
 import random
+import re
 
 from database import (
     supabase,
