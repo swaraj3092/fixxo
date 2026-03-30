@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Register from './pages/Register';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import Feedback from './pages/Feedback';
 
 function App() {
   return (
@@ -13,6 +14,8 @@ function App() {
         
         {/* Registration page */}
         <Route path="/register" element={<Register />} />
+
+        <Route path="/feedback" element={<Feedback />} />
         
         {/* Admin routes */}
         <Route path="/admin/login" element={<AdminLogin />} />

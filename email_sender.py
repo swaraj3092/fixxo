@@ -24,14 +24,26 @@ def send_department_email(complaint):
         priority_color = priority_colors.get(complaint.get('priority', 'MEDIUM'), "#f59e0b")
 
         # Optional photo section
+        # Embed image as base64 if present
         media_section = ""
         if complaint.get('media_url'):
-            media_section = f"""
-            <div style="margin:20px 0;">
-                <div class="info-label">📷 Attached Photo:</div>
-                <img src="{complaint['media_url']}" style="max-width:100%;border-radius:8px;margin-top:10px;border:1px solid #e5e7eb;" />
-            </div>
-            """
+            try:
+                import requests as req
+                from base64 import b64encode
+                twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+                twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+                img_response = req.get(complaint['media_url'], auth=(twilio_sid, twilio_token))
+                if img_response.status_code == 200:
+                    img_b64 = b64encode(img_response.content).decode('utf-8')
+                    img_mime = img_response.headers.get('Content-Type', 'image/jpeg')
+                    media_section = f"""
+                    <div style="margin:20px 0;">
+                        <div class="info-label">📷 Attached Photo:</div>
+                        <img src="data:{img_mime};base64,{img_b64}" style="max-width:100%;border-radius:8px;margin-top:10px;border:1px solid #e5e7eb;" />
+                    </div>
+                    """
+            except Exception as img_err:
+                print(f"⚠️ Could not embed image: {img_err}")
 
         html_content = f"""
         <!DOCTYPE html>
@@ -102,6 +114,13 @@ def send_department_email(complaint):
                         </a>
                     </div>
 
+                    <div style="text-align: center; margin: 10px 0 30px 0;">
+                        <a href="{BASE_URL}/cant-resolve?token={complaint['resolve_token']}" 
+                           style="color:#ef4444;font-size:14px;text-decoration:underline;">
+                            ⚠️ Can't resolve this issue?
+                        </a>
+                    </div>
+
                     <p style="color: #6b7280; font-size: 14px; text-align: center;">
                         Click the button above once the issue has been fixed. The student will be notified automatically.
                     </p>
@@ -156,6 +175,9 @@ def send_whatsapp_notification(complaint):
 
         client = Client(account_sid, auth_token)
 
+        base_url = os.getenv("BASE_URL", "http://localhost:5000")
+        feedback_link = f"{base_url}/feedback?token={complaint['resolve_token']}"
+
         message_body = f"""✅ Great news!
 
 Your complaint #{complaint['resolve_token']} has been RESOLVED!
@@ -163,6 +185,9 @@ Your complaint #{complaint['resolve_token']} has been RESOLVED!
 📋 Issue: {complaint['category']}
 🏢 Location: {complaint.get('hostel_name', 'N/A')}, Room {complaint.get('room_number', 'N/A')}
 ✅ Resolved by: {complaint.get('resolved_by', 'Department')}
+
+⭐ Share your feedback (optional):
+{feedback_link}
 
 Thank you for reporting! 🎉"""
 

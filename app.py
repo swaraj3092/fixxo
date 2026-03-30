@@ -523,7 +523,129 @@ def verify_otp():
         print(f"❌ OTP verify error: {e}")
         return jsonify({"error": str(e)}), 500
  
+# ─────────────────────────────────────────────
+#  Can't Resolve endpoint
+# ─────────────────────────────────────────────
 
+@app.route("/cant-resolve", methods=["GET"])
+def cant_resolve_page():
+    token = request.args.get("token")
+    reason = request.args.get("reason", "")
+    if not token:
+        return "❌ Invalid link", 400
+
+    complaint = get_complaint_by_token(token)
+    if not complaint:
+        return "❌ Complaint not found", 404
+
+    if complaint['status'] in ['RESOLVED', 'CANT_RESOLVE']:
+        return f"""<!DOCTYPE html><html><head><title>Already Updated</title></head>
+<body style="font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh;background:linear-gradient(135deg,#667eea,#764ba2);">
+<div style="background:white;padding:40px;border-radius:20px;text-align:center;">
+<div style="font-size:80px;">ℹ️</div><h1>Already Updated</h1>
+<p>This complaint has already been updated.</p>
+</div></body></html>"""
+
+    # Show form if no reason yet
+    if not reason:
+        return f"""<!DOCTYPE html><html><head><title>Can't Resolve</title></head>
+<body style="font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh;background:linear-gradient(135deg,#ef4444,#dc2626);">
+<div style="background:white;padding:40px;border-radius:20px;text-align:center;max-width:500px;width:90%;">
+<div style="font-size:60px;">⚠️</div>
+<h2>Why can't this be resolved?</h2>
+<form method="GET" action="/cant-resolve">
+    <input type="hidden" name="token" value="{token}" />
+    <textarea name="reason" placeholder="Explain why this issue cannot be resolved..." 
+        style="width:100%;padding:12px;border-radius:8px;border:1px solid #e5e7eb;font-size:14px;min-height:100px;box-sizing:border-box;margin:10px 0;"></textarea>
+    <button type="submit" style="background:#ef4444;color:white;border:none;padding:12px 30px;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;width:100%;">
+        Submit
+    </button>
+</form>
+</div></body></html>"""
+
+    # Save cant resolve status
+    supabase.table("complaints").update({
+        "status": "CANT_RESOLVE",
+        "cant_resolve_reason": reason,
+        "resolved_by": "Department"
+    }).eq("id", complaint['id']).execute()
+
+    # Notify student via WhatsApp
+    try:
+        from twilio.rest import Client
+        client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN"))
+        client.messages.create(
+            from_=os.getenv("TWILIO_WHATSAPP_NUMBER"),
+            body=f"""⚠️ Update on your complaint #{complaint['resolve_token']}
+
+Unfortunately, the department was unable to resolve this issue.
+
+📋 Reason: {reason}
+
+Please contact the hostel office directly for further assistance.""",
+            to=complaint['student_phone']
+        )
+    except Exception as e:
+        print(f"⚠️ WhatsApp notify failed: {e}")
+
+    return f"""<!DOCTYPE html><html><head><title>Updated</title></head>
+<body style="font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh;background:linear-gradient(135deg,#f59e0b,#d97706);">
+<div style="background:white;padding:40px;border-radius:20px;text-align:center;">
+<div style="font-size:80px;">📝</div><h1>Status Updated</h1>
+<p>The student has been notified about the unresolved issue.</p>
+</div></body></html>"""
+
+
+# ─────────────────────────────────────────────
+#  Feedback endpoints
+# ─────────────────────────────────────────────
+
+@app.route("/api/feedback", methods=["POST"])
+def submit_feedback():
+    try:
+        data = request.json
+        token = data.get("resolve_token")
+        rating = data.get("rating")
+        feedback_text = data.get("feedback_text", "")
+
+        if not token or not rating:
+            return jsonify({"error": "Token and rating are required"}), 400
+
+        complaint = get_complaint_by_token(token)
+        if not complaint:
+            return jsonify({"error": "Complaint not found"}), 404
+
+        if complaint['status'] != 'RESOLVED':
+            return jsonify({"error": "Feedback only allowed for resolved complaints"}), 400
+
+        # Check if feedback already submitted
+        existing = supabase.table("complaint_feedback").select("id").eq("resolve_token", token).execute()
+        if existing.data:
+            return jsonify({"error": "Feedback already submitted"}), 400
+
+        supabase.table("complaint_feedback").insert({
+            "complaint_id": complaint['id'],
+            "resolve_token": token,
+            "rating": int(rating),
+            "feedback_text": feedback_text
+        }).execute()
+
+        return jsonify({"success": True, "message": "Thank you for your feedback!"}), 200
+
+    except Exception as e:
+        print(f"❌ Feedback error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/feedback/<token>", methods=["GET"])
+def get_feedback(token):
+    try:
+        result = supabase.table("complaint_feedback").select("*").eq("resolve_token", token).execute()
+        if result.data:
+            return jsonify(result.data[0]), 200
+        return jsonify(None), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
