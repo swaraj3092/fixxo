@@ -451,38 +451,32 @@ def send_otp():
             "expires_at": expires_at
         }).execute()
 
-        # Send email via Resend
-        import requests as req
-        resend_key = os.getenv("RESEND_API_KEY")
+        # Send email via Gmail SMTP
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
 
-        response = req.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {resend_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "from": "Fixxo <onboarding@resend.dev>",
-                "to": [email],
-                "subject": "Your Fixxo Verification OTP",
-                "html": f"""
-                <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:30px;border-radius:12px;border:1px solid #e5e7eb;">
-                    <h2 style="color:#667eea;">🏠 Fixxo Registration</h2>
-                    <p>Your one-time verification code is:</p>
-                    <div style="font-size:40px;font-weight:bold;letter-spacing:10px;color:#1f2937;text-align:center;padding:20px;background:#f3f4f6;border-radius:8px;margin:20px 0;">
-                        {otp_code}
-                    </div>
-                    <p style="color:#6b7280;font-size:14px;">This OTP expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>
-                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
-                    <p style="color:#9ca3af;font-size:12px;">Fixxo — Hostel Complaint Management System, KIIT University</p>
-                </div>
-                """
-            }
-        )
+        gmail_user = os.getenv("GMAIL_USER")
+        gmail_pass = os.getenv("GMAIL_APP_PASSWORD")
 
-        if response.status_code not in [200, 201]:
-            print(f"Resend error: {response.text}")
-            return jsonify({"error": "Failed to send OTP email"}), 500
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Your Fixxo Verification OTP"
+        message["From"] = f"Fixxo <{gmail_user}>"
+        message["To"] = email
+        message.attach(MIMEText(f"""
+        <div style="font-family:Arial,sans-serif;max-width:500px;margin:auto;padding:30px;border-radius:12px;border:1px solid #e5e7eb;">
+            <h2 style="color:#667eea;">🏠 Fixxo Registration</h2>
+            <p>Your one-time verification code is:</p>
+            <div style="font-size:40px;font-weight:bold;letter-spacing:10px;color:#1f2937;text-align:center;padding:20px;background:#f3f4f6;border-radius:8px;margin:20px 0;">
+                {otp_code}
+            </div>
+            <p style="color:#6b7280;font-size:14px;">Expires in <strong>5 minutes</strong>. Do not share it.</p>
+        </div>
+        """, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(gmail_user, gmail_pass)
+            server.sendmail(gmail_user, email, message.as_string())
 
         print(f"✅ OTP sent to {email}: {otp_code}")
         return jsonify({"success": True, "message": f"OTP sent to {email}"}), 200
