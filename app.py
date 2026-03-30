@@ -29,16 +29,34 @@ load_dotenv()
 app = Flask(__name__, static_folder='build/static', static_url_path='/static')
 app.secret_key = os.getenv("SECRET_KEY", "fixxo-super-secret-key-change-in-production-2026")
 
-CORS(app,
-     resources={r"/api/*": {"origins": [
-         "http://localhost:3000",
-         "https://hostel-complaint-system-1-r1g3.onrender.com",
-         "https://fixxo-v2.vercel.app",
-         re.compile(r"https://fixxo-.*\.vercel\.app")   # ← allows ALL preview URLs
-     ]}},
-     supports_credentials=True,
-     allow_headers=["Content-Type", "Authorization"],
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
+
+@app.after_request
+def add_cors(response):
+    origin = request.headers.get("Origin", "")
+    if (origin.startswith("https://fixxo-") and origin.endswith(".vercel.app")) \
+       or origin in ["http://localhost:3000", "https://fixxo-v2.vercel.app",
+                     "https://hostel-complaint-system-1-r1g3.onrender.com"]:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
+
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        from flask import Response
+        origin = request.headers.get("Origin", "")
+        if (origin.startswith("https://fixxo-") and origin.endswith(".vercel.app")) \
+           or origin in ["http://localhost:3000", "https://fixxo-v2.vercel.app"]:
+            res = Response()
+            res.headers["Access-Control-Allow-Origin"] = origin
+            res.headers["Access-Control-Allow-Credentials"] = "true"
+            res.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            res.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            return res, 204
+
 
 
 # ─────────────────────────────────────────────
