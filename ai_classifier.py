@@ -19,9 +19,9 @@ DEPARTMENT_EMAILS = {
     "CLEANLINESS": "swarajbehera923@gmail.com",
     "SECURITY":    "swarajbehera923@gmail.com",
     "WIFI":        "swarajbehera923@gmail.com",
-    "FOOD":        "swarajbehera923@gmail.com",
+    "FOOD":        "anupamyagnish87@gmail.com",
     "FURNITURE":   "swarajbehera923@gmail.com",
-    "OTHER":       "swarajbehera923@gmail.com",
+    "OTHER":       "anupamyagnish87@gmail.com",
 }
 
 VALID_CATEGORIES = set(DEPARTMENT_EMAILS.keys())
