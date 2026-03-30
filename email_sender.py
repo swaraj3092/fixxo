@@ -1,4 +1,8 @@
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,6 +18,7 @@ def send_department_email(complaint):
         print(f"   To: {complaint.get('department_email')}")
 
         resolve_link = f"{BASE_URL}/resolve?token={complaint['resolve_token']}"
+        cant_resolve_link = f"{BASE_URL}/cant-resolve?token={complaint['resolve_token']}"
 
         priority_colors = {
             "URGENT": "#dc2626",
@@ -23,25 +28,34 @@ def send_department_email(complaint):
         }
         priority_color = priority_colors.get(complaint.get('priority', 'MEDIUM'), "#f59e0b")
 
-        # Optional photo section
-        # Embed image as base64 if present
+        # Download image from Twilio for CID embedding (works in Gmail)
+        image_attachment = None
         media_section = ""
+
         if complaint.get('media_url'):
             try:
                 import requests as req
-                from base64 import b64encode
                 twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
                 twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
-                img_response = req.get(complaint['media_url'], auth=(twilio_sid, twilio_token))
+                img_response = req.get(
+                    complaint['media_url'],
+                    auth=(twilio_sid, twilio_token),
+                    timeout=10
+                )
                 if img_response.status_code == 200:
-                    img_b64 = b64encode(img_response.content).decode('utf-8')
+                    img_data = img_response.content
                     img_mime = img_response.headers.get('Content-Type', 'image/jpeg')
-                    media_section = f"""
+                    # Use CID reference in HTML — this works in Gmail unlike data: URIs
+                    media_section = """
                     <div style="margin:20px 0;">
-                        <div class="info-label">📷 Attached Photo:</div>
-                        <img src="data:{img_mime};base64,{img_b64}" style="max-width:100%;border-radius:8px;margin-top:10px;border:1px solid #e5e7eb;" />
+                        <div style="font-weight:bold;color:#4b5563;margin-bottom:8px;">📷 Attached Photo:</div>
+                        <img src="cid:complaint_image" style="max-width:100%;border-radius:8px;border:1px solid #e5e7eb;" />
                     </div>
                     """
+                    image_attachment = (img_data, img_mime)
+                    print(f"✅ Image downloaded: {len(img_data)} bytes")
+                else:
+                    print(f"⚠️ Image download failed: HTTP {img_response.status_code}")
             except Exception as img_err:
                 print(f"⚠️ Could not embed image: {img_err}")
 
@@ -60,7 +74,7 @@ def send_department_email(complaint):
                 .info-label {{ font-weight: bold; color: #4b5563; margin-bottom: 5px; }}
                 .info-value {{ color: #1f2937; font-size: 16px; }}
                 .message-box {{ background-color: #eff6ff; border: 2px solid #3b82f6; border-radius: 8px; padding: 20px; margin: 20px 0; }}
-                .resolve-button {{ display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 20px 0; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3); }}
+                .resolve-button {{ display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 20px 0; box-shadow: 0 4px 6px rgba(16,185,129,0.3); }}
                 .footer {{ background-color: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }}
             </style>
         </head>
@@ -68,89 +82,86 @@ def send_department_email(complaint):
             <div class="container">
                 <div class="header">
                     <h1>🏠 New Complaint Received</h1>
-                    <p style="margin: 10px 0 0 0; opacity: 0.9;">Hostel Complaint Management System</p>
+                    <p style="margin:10px 0 0 0;opacity:0.9;">Hostel Complaint Management System</p>
                 </div>
-
                 <div class="content">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <span class="priority-badge">⚡ {complaint.get('priority', 'MEDIUM')} PRIORITY</span>
+                    <div style="text-align:center;margin-bottom:20px;">
+                        <span class="priority-badge">⚡ {complaint.get('priority','MEDIUM')} PRIORITY</span>
                     </div>
-
                     <div class="info-row">
                         <div class="info-label">📋 Complaint ID:</div>
                         <div class="info-value">#{complaint['resolve_token']}</div>
                     </div>
-
                     <div class="info-row">
                         <div class="info-label">👤 Student Name:</div>
-                        <div class="info-value">{complaint.get('student_name', 'N/A')}</div>
+                        <div class="info-value">{complaint.get('student_name','N/A')}</div>
                     </div>
-
                     <div class="info-row">
                         <div class="info-label">📞 Contact:</div>
-                        <div class="info-value">{complaint.get('student_phone', 'N/A')}</div>
+                        <div class="info-value">{complaint.get('student_phone','N/A')}</div>
                     </div>
-
                     <div class="info-row">
                         <div class="info-label">🏢 Location:</div>
-                        <div class="info-value">{complaint.get('hostel_name', 'N/A')}, Room {complaint.get('room_number', 'N/A')}</div>
+                        <div class="info-value">{complaint.get('hostel_name','N/A')}, Room {complaint.get('room_number','N/A')}</div>
                     </div>
-
                     <div class="info-row">
                         <div class="info-label">🏷️ Category:</div>
-                        <div class="info-value">{complaint.get('category', 'OTHER')}</div>
+                        <div class="info-value">{complaint.get('category','OTHER')}</div>
                     </div>
-
                     <div class="message-box">
                         <div class="info-label">💬 Issue Description:</div>
-                        <div class="info-value" style="margin-top: 10px;">{complaint.get('raw_message', 'No description provided')}</div>
+                        <div class="info-value" style="margin-top:10px;">{complaint.get('raw_message','No description provided')}</div>
                     </div>
 
                     {media_section}
 
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="{resolve_link}" class="resolve-button">
-                            ✅ Mark as Resolved
-                        </a>
+                    <div style="text-align:center;margin:30px 0;">
+                        <a href="{resolve_link}" class="resolve-button">✅ Mark as Resolved</a>
                     </div>
-
-                    <div style="text-align: center; margin: 10px 0 30px 0;">
-                        <a href="{BASE_URL}/cant-resolve?token={complaint['resolve_token']}" 
-                           style="color:#ef4444;font-size:14px;text-decoration:underline;">
+                    <div style="text-align:center;margin:10px 0 30px 0;">
+                        <a href="{cant_resolve_link}" style="color:#ef4444;font-size:14px;text-decoration:underline;">
                             ⚠️ Can't resolve this issue?
                         </a>
                     </div>
-
-                    <p style="color: #6b7280; font-size: 14px; text-align: center;">
+                    <p style="color:#6b7280;font-size:14px;text-align:center;">
                         Click the button above once the issue has been fixed. The student will be notified automatically.
                     </p>
                 </div>
-
                 <div class="footer">
-                    <p style="margin: 5px 0;">Powered by <strong>Fixxo</strong></p>
-                    <p style="margin: 5px 0;">Open Source Hostel Management System</p>
+                    <p style="margin:5px 0;">Powered by <strong>Fixxo</strong></p>
+                    <p style="margin:5px 0;">Open Source Hostel Management System</p>
                 </div>
             </div>
         </body>
         </html>
         """
 
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-
         gmail_user = os.getenv("GMAIL_USER")
         gmail_pass = os.getenv("GMAIL_APP_PASSWORD")
 
-        message = MIMEMultipart("alternative")
-        message["Subject"] = f"[{complaint.get('priority', 'MEDIUM')}] {complaint.get('category', 'NEW')} Issue - {complaint.get('hostel_name', 'Hostel')} Room {complaint.get('room_number', 'N/A')}"
-        message["From"] = f"Fixxo <{gmail_user}>"
-        message["To"] = complaint['department_email']
-        message.attach(MIMEText(html_content, "html"))
+        # Use 'related' for CID images, 'alternative' if no image
+        if image_attachment:
+            outer = MIMEMultipart("related")
+            html_part = MIMEMultipart("alternative")
+            html_part.attach(MIMEText(html_content, "html"))
+            outer.attach(html_part)
+
+            # Attach image with CID
+            img_msg = MIMEImage(image_attachment[0])
+            img_msg.add_header("Content-ID", "<complaint_image>")
+            img_msg.add_header("Content-Disposition", "inline", filename="complaint.jpg")
+            outer.attach(img_msg)
+        else:
+            outer = MIMEMultipart("alternative")
+            outer.attach(MIMEText(html_content, "html"))
+
+        outer["Subject"] = f"[{complaint.get('priority','MEDIUM')}] {complaint.get('category','NEW')} Issue - {complaint.get('hostel_name','Hostel')} Room {complaint.get('room_number','N/A')}"
+        outer["From"] = f"Fixxo <{gmail_user}>"
+        outer["To"] = complaint['department_email']
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(gmail_user, gmail_pass)
-            server.sendmail(gmail_user, complaint['department_email'], message.as_string())
+            server.sendmail(gmail_user, complaint['department_email'], outer.as_string())
 
         print("✅ EMAIL SENT SUCCESSFULLY")
         print("=" * 60)
