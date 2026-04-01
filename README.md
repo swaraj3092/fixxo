@@ -1,6 +1,7 @@
 <div align="center">
 
-# 🔧 FIXXO
+<img src="docs/logo.png" alt="Fixxo Logo" width="420"/>
+
 ### Smart Hostel Complaint Management System
 
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-fixxo--v2.vercel.app-00d4ff?style=for-the-badge)](https://fixxo-v2.vercel.app)
