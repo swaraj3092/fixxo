@@ -1,35 +1,83 @@
 <div align="center">
 
-<img src="docs/logo.png" alt="Fixxo Logo" width="420"/>
+<img src="docs/logo.png" alt="Fixxo" width="420"/>
 
-### Smart Hostel Complaint Management System
+# ⚡ Fixxo
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-fixxo--v2.vercel.app-00d4ff?style=for-the-badge)](https://fixxo-v2.vercel.app)
-[![Built with Flask](https://img.shields.io/badge/Flask-Backend-000000?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com/)
-[![React](https://img.shields.io/badge/React-Frontend-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
-[![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
-[![WhatsApp](https://img.shields.io/badge/Twilio-WhatsApp_API-25D366?style=for-the-badge&logo=whatsapp)](https://www.twilio.com/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](/LICENSE)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://python.org)
+[![Flask](https://img.shields.io/badge/flask-3.0-green.svg)](https://flask.palletsprojects.com)
+[![CI](https://github.com/swaraj3092/fixxo/actions/workflows/ci.yml/badge.svg)](/actions)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](/CONTRIBUTING.md)
+[![Version](https://img.shields.io/badge/version-1.0.0-orange.svg)]()
 
-> **FIXXO** is a WhatsApp-first hostel complaint management system built for KIIT University. Students submit complaints via WhatsApp in plain text — Groq AI classifies the issue, routes it to the right department, and keeps everyone notified until resolution.
+> AI-powered WhatsApp complaint management for university hostels.  
+> Student texts a problem → AI classifies it → Department gets an email → One click resolves it → Student is notified.  
+> **No app. No forms. Just WhatsApp.**
 
 </div>
 
 ---
 
-## ✨ What Makes Fixxo Different
+## 📖 Contents
 
-- 📱 **No app download needed** — students use WhatsApp they already have
-- 🤖 **AI-powered classification** — Groq AI auto-detects category and priority
-- 📧 **Department email routing** — relevant teams get notified with one-click resolution
-- 🔔 **Real-time WhatsApp updates** — students notified on every status change
-- 🛡️ **Admin mission-control dashboard** — full overview with live complaint feed
-- 🔐 **OTP-verified registration** — restricted to `@kiit.ac.in` emails
+- [Problem](#-problem)
+- [Demo](#-demo)
+- [Screenshots](#-screenshots)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+- [Quick Start](#-quick-start)
+- [Project Structure](#-project-structure)
+- [Roadmap](#-roadmap)
+- [Contributing](#-contributing)
+- [Team](#-team)
+- [License](#-license)
+
+---
+
+## 🎯 Problem
+
+Every university hostel has a paper complaint register. Students walk to the warden's office, write their issue, and then hear nothing for days. There's no tracking, no acknowledgement, no accountability. Complaints get lost, repeated, or simply ignored.
+
+**Average resolution time: 5–7 days. Our target: under 24 hours.**
+
+---
+
+## 🎬 Demo
+
+**Student sends:**
+
+```
+my ac is not working
+```
+
+**System replies instantly:**
+
+```
+✅ Complaint Received!
+
+📋 ID: #60F34004
+🏢 Name: Swaraj Kumar Behera
+🏗️ Location: KP-10B, Room 1b-05
+🏷️ Category: ELECTRICAL
+⚡ Priority: HIGH
+📬 Assigned to: Department
+
+You'll be notified once resolved! 🔔
+```
+
+**Live deployment:** https://fixxo-v2.vercel.app
+
+**▶️ Watch the full demo video:**
+
+[![Fixxo Demo Video](https://img.youtube.com/vi/J7bmTQkHBHU/maxresdefault.jpg)](https://youtu.be/J7bmTQkHBHU?si=7DTiLBVF8WX7by7k)
 
 ---
 
 ## 📸 Screenshots
 
-### 🏠 Student Registration (One-Time Setup)
+### 🔐 Student Registration (One-Time Setup)
 
 When a new student messages Fixxo for the first time, they receive a registration link on WhatsApp.
 
@@ -39,15 +87,15 @@ When a new student messages Fixxo for the first time, they receive a registratio
 
 ---
 
-### 💬 Submitting a Complaint via WhatsApp
+### 💬 Student Submits Complaint via WhatsApp
 
-After registration, students simply describe their issue in plain text — Fixxo handles the rest.
+After registration, the student types their issue in plain text — Fixxo handles the rest.
 
-| Complaint Submitted via WhatsApp |
+| WhatsApp Complaint Received |
 |:-:|
 | ![WhatsApp Complaint](docs/screenshots/Fixxo_wp_complaint.png) |
 
-Groq AI classifies the message into a category (ELECTRICAL, PLUMBING, FURNITURE, etc.), assigns a priority (LOW / MEDIUM / HIGH), and generates a unique complaint ID.
+Groq AI auto-classifies into a category (ELECTRICAL, PLUMBING, FURNITURE, etc.), assigns priority, and generates a unique complaint ID.
 
 ---
 
@@ -59,172 +107,225 @@ Admins get a live mission-control view of all complaints across the hostel.
 |:-:|:-:|
 | ![Login Page](docs/screenshots/Fixxo_login_page.png) | ![Admin Dashboard](docs/screenshots/Fixxo_admin_page_content.png) |
 
-The dashboard shows total complaints, pending, in-progress, resolved, and "can't resolve" counts — plus average feedback rating and recent complaint feed.
-
 ---
 
 ### 📧 Department Email Notification
 
-When a complaint is submitted, the relevant department receives a structured email with a one-click **Mark as Resolved** button.
+The relevant department receives a rich HTML email with a one-click **Mark as Resolved** button.
 
 | Department Email |
 |:-:|
-| ![Department Mailing](docs/screenshots/Fixxo_department_mailing.png) |
+| ![Department Email](docs/screenshots/Fixxo_department_mailing.png) |
 
 ---
 
 ### ✅ Resolution Flow
 
-When the department marks the complaint as resolved (or already resolved), a confirmation page is shown and the student is **automatically notified on WhatsApp**.
+When the department resolves the complaint, a confirmation page is shown and the student is **automatically notified on WhatsApp**.
 
-| Already Resolved Page | Student Notified via WhatsApp |
+| Resolved Confirmation Page | Student Notified on WhatsApp |
 |:-:|:-:|
-| ![Already Resolved](docs/screenshots/Fixxo_department_marked_as_resolved.png) | ![Notified on WhatsApp](docs/screenshots/Fixxo_notified_in_wp_as_resolved.png) |
+| ![Already Resolved](docs/screenshots/Fixxo_department_marked_as_resolved.png) | ![WhatsApp Notification](docs/screenshots/Fixxo_notified_in_wp_as_resolved.png) |
 
 ---
 
-## 🔄 System Flow
+## ✨ Features
 
-```
-Student sends WhatsApp message
-        ↓
-Twilio Webhook → Flask Backend
-        ↓
-Groq AI classifies: Category + Priority
-        ↓
-Complaint stored in Supabase PostgreSQL
-        ↓
-Department notified via Email (Resend/Gmail)
-        ↓
-Department clicks "Mark as Resolved" in email
-        ↓
-Status updated in DB → Student notified on WhatsApp
-```
+- **📱 WhatsApp-native** — No app download. No training needed for students.
+- **🤖 AI Classification** — 8 complaint categories, detected automatically via Groq AI.
+- **⚡ Priority Detection** — URGENT / HIGH / MEDIUM detected from natural language.
+- **📍 Smart Extraction** — Detects hostel block and room from unstructured text.
+- **🏢 Auto-routing** — Correct department emailed instantly.
+- **📧 Rich HTML Emails** — Colour-coded priority, full details, one-click resolve.
+- **✅ One-Click Resolution** — Department resolves directly from email, no login needed.
+- **📲 Auto-Reply on Resolve** — Student notified on WhatsApp when fixed.
+- **💾 Full Audit Trail** — Every complaint tracked in Supabase PostgreSQL with timestamps.
+- **🔒 Secure Tokens** — Cryptographic one-time tokens prevent fake resolutions.
+- **🖥️ Admin Dashboard** — React-based mission control with live stats and complaint feed.
+- **🔐 OTP Registration** — Restricted to `@kiit.ac.in` email addresses.
 
 ---
 
-## 🧰 Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React.js, Tailwind CSS |
-| **Backend** | Python Flask |
-| **Database** | Supabase (PostgreSQL) |
-| **WhatsApp API** | Twilio WhatsApp Sandbox |
-| **Email** | Resend / Gmail SMTP |
-| **AI Classification** | Groq API (LLaMA 3) |
-| **Deployment** | Vercel (frontend) + Render (backend) |
+| Backend | Flask (Python 3.8+) |
+| Frontend | React.js + Tailwind CSS |
+| Messaging | Twilio WhatsApp Business API |
+| AI/NLP | Groq API (LLaMA 3) |
+| Database | PostgreSQL via Supabase |
+| Email | Resend API / Gmail SMTP |
+| Deployment | Vercel (frontend) + Render (backend) |
+| CI/CD | GitHub Actions |
 
 ---
 
-## 🚀 Getting Started
+## 🏗️ Architecture
 
-### Prerequisites
-
-```bash
-Python 3.10+
-Node.js 18+
-Supabase account
-Twilio account (WhatsApp Sandbox)
-Groq API key
+```
+Student (WhatsApp)
+      │
+      ▼
+Twilio API ──POST /webhook──▶ Flask (app.py)
+                                    │
+                          ┌─────────┴──────────┐
+                          ▼                    ▼
+               Groq AI Classifier         database.py
+               (classify complaint)       (save to Supabase)
+                          │
+                          ▼
+                     email_sender.py
+                   (Resend API → dept)
+                          │
+                 Department clicks resolve
+                          │
+                   GET /resolve ──▶ Flask
+                                      │
+                               ┌──────┴──────┐
+                               ▼             ▼
+                          database.py    Twilio API
+                          RESOLVED     (notify student)
 ```
 
-### 1. Clone the repository
+Full diagram → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+---
+
+## 🚀 Quick Start
 
 ```bash
 git clone https://github.com/swaraj3092/fixxo.git
 cd fixxo
-```
 
-### 2. Backend Setup
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
 
-```bash
-cd backend
 pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your credentials
+
+python src/app.py
 ```
 
-Create a `.env` file:
+Full guide → [docs/INSTALLATION.md](docs/INSTALLATION.md)
 
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_anon_key
-GROQ_API_KEY=your_groq_api_key
-TWILIO_ACCOUNT_SID=your_twilio_sid
-TWILIO_AUTH_TOKEN=your_twilio_token
-TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
-RESEND_API_KEY=your_resend_api_key
-ADMIN_EMAIL=your_admin_email
-FRONTEND_URL=http://localhost:5173
+---
+
+## 📂 Project Structure
+
 ```
-
-```bash
-python app.py
-```
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
+fixxo/
+│
+├── src/
+│   ├── app.py                   # Flask server — all HTTP routes
+│   ├── ai_classifier_simple.py  # Groq AI classifier
+│   ├── database.py              # Supabase database operations
+│   └── email_sender.py          # Resend HTML email notifications
+│
+├── tests/
+│   ├── test_classifier.py
+│   ├── test_database.py
+│   └── test_email.py
+│
+├── docs/
+│   ├── logo.png                 # Fixxo logo
+│   ├── ARCHITECTURE.md
+│   ├── INSTALLATION.md
+│   ├── PITCH.md
+│   └── screenshots/             # All UI screenshots
+│
+├── examples/
+│   ├── test_messages.txt
+│   └── sample_complaints.json
+│
+├── .github/
+│   ├── workflows/ci.yml
+│   ├── ISSUE_TEMPLATE/
+│   └── PULL_REQUEST_TEMPLATE.md
+│
+├── render.yaml
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── README.md
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+└── ROADMAP.md
 ```
 
 ---
 
-## 📁 Project Structure
+## 🗺️ Roadmap
 
-```
-fixxo/
-├── backend/
-│   ├── app.py              # Flask main app
-│   ├── routes/
-│   │   ├── whatsapp.py     # Twilio webhook handler
-│   │   ├── complaints.py   # Complaint CRUD
-│   │   ├── admin.py        # Admin auth & dashboard
-│   │   └── register.py     # Student registration
-│   └── utils/
-│       ├── groq_classify.py # AI classification
-│       └── email_sender.py  # Email notification
-├── frontend/
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── AdminDashboard.jsx
-│   │   │   ├── Register.jsx
-│   │   │   └── ResolveConfirm.jsx
-│   │   └── components/
-└── docs/
-    └── screenshots/
-```
+See [ROADMAP.md](ROADMAP.md) for full details.
+
+**v1.0 — Current**
+
+- ✅ WhatsApp via Twilio
+- ✅ Groq AI classification — 8 categories
+- ✅ Auto-routing via Resend email
+- ✅ One-click resolution from email
+- ✅ Student WhatsApp notification on resolve
+- ✅ Supabase audit trail + secure tokens
+- ✅ React admin dashboard with live stats
+- ✅ OTP-verified registration (@kiit.ac.in)
+- ✅ Deployed on Vercel + Render
+
+**v1.1 — Planned**
+
+- 🔄 Hindi language support
+- 🔄 Image/photo complaint analysis
+- 🔄 Auto-escalation after 24 hours
+
+**v2.0 — Future**
+
+- 📋 Multi-campus support
+- 📱 Department mobile app
+- 📊 Advanced analytics & reporting
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Good first issues:**
+
+- Add Hindi keywords (`पानी` → PLUMBING, `बिजली` → ELECTRICAL)
+- Write tests for FOOD and CLEANLINESS categories
+- Improve Groq prompt for edge cases
 
 ---
 
 ## 👥 Team
 
-Built by **CodeSync** for KIIT University
+Built by **CodeSync** for KIIT University, Bhubaneswar.
 
 | | |
 |---|---|
-| **Swaraj Kumar Behera** | Backend, Deployment, AI Integration |
+| **Swaraj Kumar Behera** | Backend, AI Integration, Deployment |
 | **Prajakta Kuila** | Frontend, UI/UX Design |
 
 ---
 
 ## 🏆 Achievements
 
-- 🥇 Submitted at **Open Source Forge Hackathon** — KIIT Fest
-- 🚀 Submitted at **HackRent 2026** — Systems Track
-- ⭐ 5.0/5 avg feedback rating (from real test users)
+- 🥇 **Open Source Forge Hackathon** — KIIT Fest
+- 🚀 **HackRent 2026** — Systems Track submission
+- ⭐ 5.0/5 average feedback rating from test users
 
 ---
 
-## 📄 License
+## 📜 License
 
-This project is open source and available under the [MIT License](LICENSE).
+[Apache License 2.0](LICENSE) — free for any university to deploy, fork, or build upon.
 
 ---
 
 <div align="center">
-  Made with ❤️ at KIIT University, Bhubaneswar
-  <br/>
-  <a href="https://fixxo-v2.vercel.app">🌐 Live Demo</a> · <a href="https://github.com/swaraj3092/fixxo/issues">🐛 Report Bug</a>
+  Made for university students who deserve faster maintenance. 🏠
+  <br/><br/>
+  <a href="https://fixxo-v2.vercel.app">🌐 Live Demo</a> · <a href="https://youtu.be/J7bmTQkHBHU?si=7DTiLBVF8WX7by7k">▶️ Demo Video</a> · <a href="https://github.com/swaraj3092/fixxo/issues">🐛 Report Bug</a> · <a href="CONTRIBUTING.md">🤝 Contribute</a>
 </div>
