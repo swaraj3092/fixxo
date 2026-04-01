@@ -312,7 +312,6 @@ Built by **CodeSync** for KIIT University, Bhubaneswar.
 
 ## 🏆 Achievements
 
-- 🥇 **Open Source Forge Hackathon** — KIIT Fest
 - 🚀 **HackRent 2026** — Systems Track submission
 - ⭐ 5.0/5 average feedback rating from test users
 
