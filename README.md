@@ -35,7 +35,7 @@ When a new student messages Fixxo for the first time, they receive a registratio
 
 | First-Time WhatsApp Prompt | Registration Form |
 |:-:|:-:|
-| ![First Time Registration](docs/screenshots/Fixxo_Student_1_time_registeration.png) | ![Registration Page](docs/screenshots/Fixxo_student_registeration_page.png) |
+| ![First Time Registration](docs/screenshots/Fixxo_student_1_time_registeration.png) | ![Registration Page](docs/screenshots/Fixxo_student_registeration_page.png) |
 
 ---
 
