@@ -301,14 +301,17 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## 👥 Team
 
-Built by **CodeSync** for KIIT University, Bhubaneswar.
+**CodeSync** — Built for Open Source Forge @ KIIT Fest 2026
 
-| | |
-|---|---|
-| **Swaraj Kumar Behera** | Backend, AI Integration, Deployment |
-| **Prajakta Kuila** | Frontend, UI/UX Design |
+| Member | Role | Contributions |
+|--------|------|---------------|
+| [Swaraj Kumar Behera](https://github.com/swaraj3092) | Team Lead & Backend Engineer | Flask API architecture, Twilio WhatsApp webhook integration, Groq/LLaMA AI classifier, Supabase schema design, Render deployment, CI/CD pipeline |
+| [Prajakta Kuila](https://github.com/) | Frontend & Integration | React admin dashboard UI, complaint card components, OTP-based auth flow, Resend email integration, KP/QC hostel toggle |
+| [Yagnish Anupam](https://github.com/) | Testing & Documentation | Unit test suite (25+ classifier tests, DB & email tests), `examples/sample_complaints.json` corpus, `docs/ARCHITECTURE.md` write-up, `CONTRIBUTING.md` and issue templates, bug reporting and QA across WhatsApp → email → resolve flow |
 
 ---
+
+> *Made with ❤️ for every hostel student who deserved faster maintenance.*
 
 ## 🏆 Achievements
 
